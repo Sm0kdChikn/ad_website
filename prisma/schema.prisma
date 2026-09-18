@@ -1,0 +1,44 @@
+// AdNabbit MVP — SQLite by default for zero-setup local demos.
+// To switch to Postgres: change provider to "postgresql" and set DATABASE_URL
+// e.g. postgresql://user:pass@localhost:5432/adnabbit
+//
+// Note: SQLite has no native enums — Role and status are stored as strings.
+// Valid Role: ADVERTISER | ADMIN
+// Valid status: DRAFT | PENDING | APPROVED | REJECTED
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  passwordHash String
+  name         String?
+  role         String     @default("ADVERTISER")
+  creatives    Creative[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Creative {
+  id           String    @id @default(cuid())
+  name         String
+  notes        String?
+  fileName     String
+  storedName   String
+  mimeType     String
+  fileSize     Int
+  status       String    @default("DRAFT")
+  rejectReason String?
+  advertiserId String
+  advertiser   User      @relation(fields: [advertiserId], references: [id], onDelete: Cascade)
+  reviewedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
