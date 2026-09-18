@@ -214,6 +214,59 @@ async function main() {
     });
     console.log(`Seeded demo profile: /a/${slug} (published)`);
   }
+
+  // Ticket C — seed APPROVED creative for demo advertiser (smoke placement path)
+  const fs = await import("fs/promises");
+  const path = await import("path");
+  const { randomUUID } = await import("crypto");
+
+  const uploadsDir = path.join(process.cwd(), "uploads");
+  await fs.mkdir(uploadsDir, { recursive: true });
+
+  let approvedCreative = await prisma.creative.findFirst({
+    where: {
+      advertiserId: demoUser.id,
+      name: "Demo Approved Banner",
+      status: "APPROVED",
+    },
+  });
+
+  if (!approvedCreative) {
+    const storedName = `${randomUUID()}.png`;
+    const src = path.join(process.cwd(), "demo-ad.png");
+    try {
+      await fs.copyFile(src, path.join(uploadsDir, storedName));
+    } catch {
+      // Minimal 1x1 PNG if demo-ad.png missing
+      const tiny = Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+        "base64"
+      );
+      await fs.writeFile(path.join(uploadsDir, storedName), tiny);
+    }
+    const st = await fs.stat(path.join(uploadsDir, storedName));
+    approvedCreative = await prisma.creative.create({
+      data: {
+        name: "Demo Approved Banner",
+        notes: "Seeded APPROVED creative for Ticket C placement smoke",
+        fileName: "demo-ad.png",
+        storedName,
+        mimeType: "image/png",
+        fileSize: st.size,
+        status: "APPROVED",
+        advertiserId: demoUser.id,
+        reviewedAt: new Date(),
+      },
+    });
+    console.log(`Seeded APPROVED creative: ${approvedCreative.name} (id=${approvedCreative.id})`);
+  } else {
+    console.log(`APPROVED creative already present: ${approvedCreative.id}`);
+  }
+
+  // Ensure at least a couple OPEN screens exist (hosts/screens seeded above)
+  const openCount = await prisma.screen.count({ where: { inventoryStatus: "OPEN" } });
+  console.log(`OPEN screens available for placement browse: ${openCount}`);
+
 }
 
 main()

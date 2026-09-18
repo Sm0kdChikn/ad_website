@@ -1,6 +1,6 @@
 # AdNabbit Web MVP
 
-Advertiser signup/login, creative upload (image/video), submit for review, admin approve/reject, **Ticket A — Host/screen inventory**, and **Ticket B — Advertiser public profiles**.
+Advertiser signup/login, creative upload (image/video), submit for review, admin approve/reject, **Ticket A — Host/screen inventory**, and **Ticket B — Advertiser public profiles**, and **Ticket C — Placement requests**.
 
 **Repo target:** https://github.com/Sm0kdChikn/ad_website
 
@@ -38,7 +38,7 @@ Open http://localhost:3000
 
 Change `ADMIN_EMAIL` / `ADMIN_PASSWORD` before seeding in non-dev environments.
 
-Seed also creates sample **hosts** / **screens** (Ticket A) and a **published demo advertiser profile** at `/a/front-range-hvac` (Ticket B).
+Seed also creates sample **hosts** / **screens** (Ticket A), a **published demo advertiser profile** at `/a/front-range-hvac` (Ticket B), and an **APPROVED** creative for the demo advertiser (Ticket C).
 
 ### Default seed demo advertiser
 
@@ -53,7 +53,7 @@ Seed also creates sample **hosts** / **screens** (Ticket A) and a **published de
 | `npm run dev` | Next.js dev server |
 | `npm run db:migrate` | Prisma migrate (interactive) |
 | `npm run db:push` | Push schema without migration history |
-| `npm run db:seed` | Create/update ADMIN + sample hosts/screens + demo advertiser profile |
+| `npm run db:seed` | Create/update ADMIN + sample hosts/screens + demo advertiser profile + APPROVED creative |
 | `npm run build` / `start` | Production build & serve |
 
 ## Creative statuses
@@ -147,9 +147,43 @@ After seed: log in as `demo.advertiser@adnabbit.com` / `demo123!` → Profile, o
 2. Set `DATABASE_URL` accordingly
 3. `npx prisma migrate dev` + `npm run db:seed`
 
+## Ticket C — Placement requests
+
+Advertisers browse requestable screens (OPEN / LIMITED), attach an **APPROVED** creative, and submit a placement request. Admins approve or reject (reject requires a reason shown to the advertiser).
+
+### Data model (Forge lock)
+
+- **PlacementRequest**: `advertiserId` → User, `screenId` → Screen, `creativeId` → Creative, `status` (`REQUESTED` | `APPROVED` | `REJECTED`), optional `rejectReason`, optional `note` (advertiser message), `reviewedAt`, `reviewedById` → User, timestamps
+- Indexes: `status`, `advertiserId`, `screenId` (also `creativeId`)
+- Create rules: creative owned by requester **and** status `APPROVED`; screen inventory `OPEN` or `LIMITED` (FULL not requestable). Duplicate pending same creative+screen → 409.
+
+### Advertiser UI / API
+
+| Path | Purpose |
+|------|---------|
+| `/screens` | Browse OPEN/LIMITED (optional include FULL as unavailable); filters: city, zip, host vertical, venue/notes search |
+| `/placements` | Own placement requests + status (+ reject reason) |
+| GET | `/api/screens` (query: `city`, `zip`, `vertical`, `q`, `includeFull`, `inventoryStatus`) |
+| GET/POST | `/api/placements` (POST body: `screenId`, `creativeId`, optional `note`) |
+
+### Admin
+
+| Path | Purpose |
+|------|---------|
+| `/admin/placements` | Queue REQUESTED; approve / reject with reason |
+| GET | `/api/admin/placements` (query: `status`, default `REQUESTED`; `ALL` for all) |
+| POST | `/api/admin/placements/[id]/approve` |
+| POST | `/api/admin/placements/[id]/reject` body `{ "reason": "…" }` |
+
+### Demo
+
+1. Log in as `demo.advertiser@adnabbit.com` / `demo123!` (seeded APPROVED creative)
+2. **Screens** → filter Denver → Request placement → pick Demo Approved Banner
+3. Log in as admin → **Placements** → Approve or Reject with reason
+4. Back as advertiser → **Placements** → see status / reject reason
+
 ## Out of scope (later tickets)
 
-- Ticket C: placement requests
 - Host self-serve portal, player, OptiSigns sync, scheduling, proof-of-play, marketplace, billing
 
 ## Push to GitHub

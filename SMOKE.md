@@ -336,3 +336,126 @@ None for local Ticket B.
 | Slug collision | **PASS** second “Front Range HVAC” → `front-range-hvac-1` |
 
 Demo stays published at `/a/front-range-hvac` after smoke (re-published).
+
+
+---
+
+# Ticket C — Placement requests smoke
+
+**Date:** 2026-09-18 (America/Denver)  
+**Prereq:** migration `placement_requests`, `npm run db:seed` (APPROVED creative + OPEN screens), `npm run dev` on :3000
+
+## Setup
+
+```bash
+cd /workspace/adnabbit-web
+npx prisma migrate dev --name placement_requests   # already applied on this branch
+npm run db:seed
+# Seeded demo.advertiser + Demo Approved Banner (APPROVED) + OPEN screens
+npm run dev
+```
+
+## C1. Browse OPEN/LIMITED screens — PASS expected
+
+```bash
+# Login as demo.advertiser@adnabbit.com / demo123! → /tmp/demo-cookies.txt
+curl -s -b /tmp/demo-cookies.txt "http://localhost:3000/api/screens" | head -c 600
+# expect screens with OPEN/LIMITED only (no FULL unless includeFull=1)
+
+curl -s -b /tmp/demo-cookies.txt "http://localhost:3000/api/screens?city=Denver&vertical=GYM" | head -c 400
+curl -s -b /tmp/demo-cookies.txt "http://localhost:3000/api/screens?includeFull=1" | head -c 200
+# FULL may appear when includeFull=1
+```
+
+## C2. Create placement with APPROVED creative — PASS expected
+
+```bash
+# Get APPROVED creative id + an OPEN screen id
+CREATIVE_ID=$(curl -s -b /tmp/demo-cookies.txt http://localhost:3000/api/creatives | python3 -c "import sys,json; cs=json.load(sys.stdin)['creatives']; print(next(c['id'] for c in cs if c['status']=='APPROVED'))")
+SCREEN_ID=$(curl -s -b /tmp/demo-cookies.txt "http://localhost:3000/api/screens?inventoryStatus=OPEN" | python3 -c "import sys,json; print(json.load(sys.stdin)['screens'][0]['id'])")
+
+curl -s -b /tmp/demo-cookies.txt -X POST http://localhost:3000/api/placements \
+  -H 'Content-Type: application/json' \
+  -d "{\"screenId\":\"$SCREEN_ID\",\"creativeId\":\"$CREATIVE_ID\",\"note\":\"Smoke placement request\"}"
+# expect 201, status REQUESTED
+```
+
+## C3. Non-APPROVED creative rejected — PASS expected
+
+```bash
+# Upload a DRAFT creative (or use a non-approved id), then:
+curl -s -b /tmp/demo-cookies.txt -X POST http://localhost:3000/api/placements \
+  -H 'Content-Type: application/json' \
+  -d "{\"screenId\":\"$SCREEN_ID\",\"creativeId\":\"$DRAFT_ID\"}"
+# expect 400 "Only APPROVED creatives…"
+```
+
+## C4. FULL screen not requestable — PASS expected
+
+```bash
+FULL_ID=$(curl -s -b /tmp/demo-cookies.txt "http://localhost:3000/api/screens?includeFull=1&inventoryStatus=FULL" | python3 -c "import sys,json; print(json.load(sys.stdin)['screens'][0]['id'])")
+curl -s -b /tmp/demo-cookies.txt -X POST http://localhost:3000/api/placements \
+  -H 'Content-Type: application/json' \
+  -d "{\"screenId\":\"$FULL_ID\",\"creativeId\":\"$CREATIVE_ID\"}"
+# expect 400 inventory FULL
+```
+
+## C5. Admin approve — PASS expected
+
+```bash
+# Admin login → /tmp/admin-cookies.txt
+curl -s -b /tmp/admin-cookies.txt http://localhost:3000/api/admin/placements | head -c 500
+PLACEMENT_ID=…  # from list or create
+curl -s -b /tmp/admin-cookies.txt -X POST http://localhost:3000/api/admin/placements/$PLACEMENT_ID/approve
+# expect status APPROVED, reviewedAt set
+```
+
+## C6. Admin reject with reason — PASS expected
+
+```bash
+# Create another REQUESTED placement, then:
+curl -s -b /tmp/admin-cookies.txt -X POST http://localhost:3000/api/admin/placements/$ID2/reject \
+  -H 'Content-Type: application/json' \
+  -d '{"reason":"Does not fit venue brand"}'
+# expect REJECTED + rejectReason
+
+curl -s -b /tmp/demo-cookies.txt http://localhost:3000/api/placements | head -c 800
+# advertiser sees rejectReason
+```
+
+## C7. Auth gates — PASS expected
+
+```bash
+curl -s -o /dev/null -w "%{http_code}" -b /tmp/demo-cookies.txt http://localhost:3000/api/admin/placements
+# expect 403
+curl -s -o /dev/null -w "%{http_code}" -b /tmp/admin-cookies.txt -L http://localhost:3000/admin/placements
+# expect 200
+curl -s -o /dev/null -w "%{http_code}" -b /tmp/demo-cookies.txt -L http://localhost:3000/screens
+# expect 200
+```
+
+## Demo path
+
+1. `demo.advertiser@adnabbit.com` / `demo123!` → **Screens** → Request placement with Demo Approved Banner
+2. `admin@adnabbit.com` / `admin123!` → **Placements** → Approve one; Reject another with reason
+3. Advertiser → **Placements** → see APPROVED / REJECTED (+ reason)
+
+## Blockers
+
+None for local Ticket C.
+
+
+## Ticket C verified results (2026-09-18 ~1:41 PM MT)
+
+| Check | Result |
+|-------|--------|
+| C1 Browse OPEN/LIMITED `/api/screens` | **PASS** (6 screens; no FULL by default) |
+| C2 Create placement with APPROVED creative | **PASS** 201 REQUESTED |
+| C3 Non-APPROVED creative attach | **PASS** 400 |
+| C4 FULL screen request | **PASS** 400 |
+| C5 Admin approve | **PASS** APPROVED + reviewedAt |
+| C6 Admin reject with reason | **PASS** REJECTED + rejectReason visible to advertiser |
+| C6b Reject without reason | **PASS** 400 |
+| C7 Auth: advertiser 403 on admin API; UI 200 | **PASS** |
+
+Demo: `demo.advertiser@adnabbit.com` / `demo123!` (seeded APPROVED creative) → Screens → request → `admin@adnabbit.com` / `admin123!` → Placements queue.

@@ -70,3 +70,11 @@ export const ADVERTISER_CATEGORY_LABELS = HOST_VERTICAL_LABELS;
 export function isAdvertiserCategory(v: string): v is AdvertiserCategory {
   return isHostVertical(v);
 }
+
+/** Ticket C — placement request status machine */
+export const PLACEMENT_STATUSES = ["REQUESTED", "APPROVED", "REJECTED"] as const;
+export type PlacementStatus = (typeof PLACEMENT_STATUSES)[number];
+
+export function isPlacementStatus(v: string): v is PlacementStatus {
+  return (PLACEMENT_STATUSES as readonly string[]).includes(v);
+}
