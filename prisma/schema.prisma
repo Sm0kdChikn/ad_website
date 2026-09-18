@@ -2,9 +2,11 @@
 // To switch to Postgres: change provider to "postgresql" and set DATABASE_URL
 // e.g. postgresql://user:pass@localhost:5432/adnabbit
 //
-// Note: SQLite has no native enums — Role and status are stored as strings.
+// Note: SQLite has no native enums — Role, status, vertical, inventoryStatus are strings.
 // Valid Role: ADVERTISER | ADMIN
-// Valid status: DRAFT | PENDING | APPROVED | REJECTED
+// Valid Creative status: DRAFT | PENDING | APPROVED | REJECTED
+// Valid HostVertical: see src/lib/types.ts
+// Valid InventoryStatus: OPEN | LIMITED | FULL
 
 generator client {
   provider = "prisma-client-js"
@@ -41,4 +43,37 @@ model Creative {
   reviewedAt   DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+}
+
+/// Venue / host location. Screens inherit vertical from Host (not stored on Screen).
+model Host {
+  id         String   @id @default(cuid())
+  name       String
+  /// Primary vertical (HostVertical enum as string)
+  vertical   String
+  /// Required when vertical is OTHER
+  otherLabel String?
+  notes      String?
+  screens    Screen[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Screen {
+  id              String   @id @default(cuid())
+  name            String
+  city            String
+  zip             String
+  /// OPEN | LIMITED | FULL
+  inventoryStatus String   @default("OPEN")
+  notes           String?
+  hostId          String
+  host            Host     @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([city])
+  @@index([zip])
+  @@index([inventoryStatus])
+  @@index([hostId])
 }

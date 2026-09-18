@@ -13,7 +13,7 @@ export function Nav() {
         <Link href="/" className="text-lg font-bold tracking-tight text-indigo-700">
           AdNabbit
         </Link>
-        <nav className="flex items-center gap-4 text-sm">
+        <nav className="flex flex-wrap items-center gap-4 text-sm">
           {session?.user ? (
             <>
               {role === "ADVERTISER" && (
@@ -27,9 +27,17 @@ export function Nav() {
                 </>
               )}
               {role === "ADMIN" && (
-                <Link href="/admin" className="text-slate-700 hover:text-indigo-600">
-                  Admin Review
-                </Link>
+                <>
+                  <Link href="/admin" className="text-slate-700 hover:text-indigo-600">
+                    Review
+                  </Link>
+                  <Link href="/admin/hosts" className="text-slate-700 hover:text-indigo-600">
+                    Hosts
+                  </Link>
+                  <Link href="/admin/screens" className="text-slate-700 hover:text-indigo-600">
+                    Screens
+                  </Link>
+                </>
               )}
               <span className="text-slate-500">
                 {session.user.email} · {role}

@@ -25,9 +25,19 @@ export default async function AdminPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Admin review queue</h1>
-        <p className="text-sm text-slate-600">Approve or reject PENDING creatives.</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Admin review queue</h1>
+          <p className="text-sm text-slate-600">Approve or reject PENDING creatives.</p>
+        </div>
+        <div className="flex gap-2 text-sm">
+          <a href="/admin/hosts" className="rounded-md bg-indigo-50 px-3 py-1.5 text-indigo-700 hover:bg-indigo-100">
+            Hosts
+          </a>
+          <a href="/admin/screens" className="rounded-md bg-indigo-50 px-3 py-1.5 text-indigo-700 hover:bg-indigo-100">
+            Screens
+          </a>
+        </div>
       </div>
 
       <section className="space-y-3">
