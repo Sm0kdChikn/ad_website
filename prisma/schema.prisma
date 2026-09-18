@@ -18,14 +18,15 @@ datasource db {
 }
 
 model User {
-  id           String     @id @default(cuid())
-  email        String     @unique
+  id           String             @id @default(cuid())
+  email        String             @unique
   passwordHash String
   name         String?
-  role         String     @default("ADVERTISER")
+  role         String             @default("ADVERTISER")
   creatives    Creative[]
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  profile      AdvertiserProfile?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
 }
 
 model Creative {
@@ -76,4 +77,30 @@ model Screen {
   @@index([zip])
   @@index([inventoryStatus])
   @@index([hostId])
+}
+
+/// Ticket B — public advertiser profile (1:1 with User)
+model AdvertiserProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// URL-safe unique slug for /a/[slug]
+  slug            String   @unique
+  displayName     String
+  pitch           String?
+  website         String?
+  /// Phone or email contact
+  contact         String?
+  /// Uploaded logo file under uploads/
+  logoStoredName  String?
+  /// External logo URL (alternative to upload)
+  logoUrl         String?
+  category        String?
+  /// Comma/space-separated ZIP codes or free-form service area
+  serviceAreaZips String?
+  published       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([published])
 }

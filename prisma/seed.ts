@@ -144,6 +144,76 @@ async function main() {
       }
     }
   }
+
+  // Ticket B — demo advertiser + published public profile
+  const demoEmail = "demo.advertiser@adnabbit.com";
+  const demoPassword = "demo123!";
+  const demoHash = await bcrypt.hash(demoPassword, 12);
+  const demoUser = await prisma.user.upsert({
+    where: { email: demoEmail },
+    update: {
+      passwordHash: demoHash,
+      role: "ADVERTISER",
+      name: "Demo Advertiser",
+    },
+    create: {
+      email: demoEmail,
+      passwordHash: demoHash,
+      role: "ADVERTISER",
+      name: "Demo Advertiser",
+    },
+  });
+  console.log(`Seeded demo advertiser: ${demoUser.email} (password: demo123!)`);
+
+  const profileData = {
+    slug: "front-range-hvac",
+    displayName: "Front Range HVAC",
+    pitch:
+      "Local heating & cooling for Denver metro. Fast installs, honest quotes, 24/7 emergency service.",
+    website: "https://example.com/front-range-hvac",
+    contact: "hello@frontrangehvac.example",
+    logoStoredName: null as string | null,
+    logoUrl: null as string | null,
+    category: "PROFESSIONAL",
+    serviceAreaZips: "80202, 80205, 80206, 80012, 80301",
+    published: true,
+  };
+
+  const existingProfile = await prisma.advertiserProfile.findUnique({
+    where: { userId: demoUser.id },
+  });
+  if (existingProfile) {
+    // Keep slug unique: if another user somehow owns front-range-hvac, update this row's fields only
+    const slugOwner = await prisma.advertiserProfile.findUnique({
+      where: { slug: profileData.slug },
+    });
+    const updateSlug =
+      !slugOwner || slugOwner.userId === demoUser.id ? profileData.slug : existingProfile.slug;
+
+    await prisma.advertiserProfile.update({
+      where: { userId: demoUser.id },
+      data: { ...profileData, slug: updateSlug },
+    });
+    console.log(`Updated demo profile: /a/${updateSlug} (published)`);
+  } else {
+    // Resolve slug collision with other users
+    let slug = profileData.slug;
+    let n = 0;
+    for (;;) {
+      const clash = await prisma.advertiserProfile.findUnique({ where: { slug } });
+      if (!clash) break;
+      n += 1;
+      slug = `${profileData.slug}-${n}`;
+    }
+    await prisma.advertiserProfile.create({
+      data: {
+        userId: demoUser.id,
+        ...profileData,
+        slug,
+      },
+    });
+    console.log(`Seeded demo profile: /a/${slug} (published)`);
+  }
 }
 
 main()

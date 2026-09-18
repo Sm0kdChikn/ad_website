@@ -59,3 +59,14 @@ export function formatVertical(vertical: string, otherLabel?: string | null): st
   if (vertical === "OTHER" && otherLabel) return `Other (${otherLabel})`;
   return HOST_VERTICAL_LABELS[vertical as HostVertical] || vertical;
 }
+
+
+/** Advertiser profile business categories (aligned with host verticals for marketplace fit) */
+export const ADVERTISER_CATEGORIES = HOST_VERTICALS;
+export type AdvertiserCategory = HostVertical;
+
+export const ADVERTISER_CATEGORY_LABELS = HOST_VERTICAL_LABELS;
+
+export function isAdvertiserCategory(v: string): v is AdvertiserCategory {
+  return isHostVertical(v);
+}

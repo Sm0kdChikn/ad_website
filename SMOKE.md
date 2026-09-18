@@ -231,3 +231,108 @@ None for local Ticket A.
 | A6 Admin UI pages | **PASS** all 200 |
 
 Forge vertical lock confirmed in seed/API: `GYM`, `PROFESSIONAL` (not GYM_FITNESS / PROFESSIONAL_SERVICES).
+
+---
+
+# Ticket B — Advertiser public profiles smoke
+
+**Date:** 2026-09-18 (America/Denver)  
+**Prereq:** migrations applied (`advertiser_profiles`), `npm run db:seed`, `npm run dev` on :3000
+
+## Setup
+
+```bash
+cd /workspace/adnabbit-web
+npx prisma migrate dev --name advertiser_profiles   # already applied on this branch
+npm run db:seed
+# Seeded demo.advertiser@adnabbit.com / demo123! + published /a/front-range-hvac
+npm run dev
+```
+
+## B1. Public published profile — PASS expected
+
+```bash
+curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/a/front-range-hvac
+# expect 200; body contains "Front Range HVAC"
+curl -s http://localhost:3000/a/front-range-hvac | grep -o "Front Range HVAC" | head -1
+```
+
+## B2. Unpublished / missing → soft not available — PASS expected
+
+```bash
+curl -s http://localhost:3000/a/does-not-exist | grep -o "Profile not available" | head -1
+# expect "Profile not available"
+```
+
+## B3. Advertiser create/edit + publish — PASS expected
+
+```bash
+# Login as demo.advertiser@adnabbit.com / demo123! (CSRF + credentials callback → /tmp/demo-cookies.txt)
+
+curl -s -b /tmp/demo-cookies.txt http://localhost:3000/api/profile
+# expect existing Front Range HVAC profile
+
+curl -s -b /tmp/demo-cookies.txt -X PUT http://localhost:3000/api/profile \
+  -H 'Content-Type: application/json' \
+  -d '{"displayName":"Front Range HVAC","pitch":"Updated pitch","website":"https://example.com","contact":"303-555-0100","category":"PROFESSIONAL","serviceAreaZips":"80202,80205","published":true}'
+# expect 200, slug front-range-hvac (or collision-safe)
+```
+
+## B4. Non-advertiser cannot edit profile — PASS expected
+
+```bash
+curl -s -o /dev/null -w "%{http_code}" -b /tmp/admin-cookies.txt -X PUT http://localhost:3000/api/profile \
+  -H 'Content-Type: application/json' \
+  -d '{"displayName":"Nope","published":true}'
+# expect 403
+```
+
+## B5. Admin list + unpublish — PASS expected
+
+```bash
+curl -s -b /tmp/admin-cookies.txt http://localhost:3000/api/admin/profiles | head -c 400
+# expect profiles array with published Front Range HVAC
+
+PROFILE_ID=…  # from list
+curl -s -b /tmp/admin-cookies.txt -X POST http://localhost:3000/api/admin/profiles/$PROFILE_ID/unpublish
+# expect published:false
+
+curl -s http://localhost:3000/a/front-range-hvac | grep -o "Profile not available" | head -1
+# expect not available after unpublish
+
+# Re-publish via demo advertiser PUT published:true for further demos
+```
+
+## B6. UI pages — PASS expected
+
+| Path | Cookie | Expect |
+|------|--------|--------|
+| `/a/front-range-hvac` | — | 200 (when published) |
+| `/profile` | demo advertiser | 200 |
+| `/admin/profiles` | admin | 200 |
+| `/admin/profiles` | advertiser | redirect |
+| `/api/admin/profiles` | advertiser | 403 |
+
+## Demo path
+
+1. Open http://localhost:3000/a/front-range-hvac (anonymous) — see Front Range HVAC
+2. Log in as `demo.advertiser@adnabbit.com` / `demo123!` → **Profile** → edit pitch / publish
+3. Log in as `admin@adnabbit.com` / `admin123!` → **Profiles** → Unpublish → public page shows not available
+
+## Blockers
+
+None for local Ticket B.
+
+## Ticket B verified results (2026-09-18 ~1:35 PM MT)
+
+| Check | Result |
+|-------|--------|
+| B1 Public `/a/front-range-hvac` | **PASS** HTTP 200, “Front Range HVAC” |
+| B2 Missing slug soft not-available | **PASS** |
+| B3 Advertiser GET/PUT `/api/profile` | **PASS** slug `front-range-hvac` |
+| B4 Admin PUT `/api/profile` | **PASS** HTTP 403 |
+| B5 Admin list + unpublish | **PASS** public becomes not available; re-publish restores 200 |
+| B6 UI `/profile`, `/admin/profiles` | **PASS** 200 for roles; advertiser 403/307 on admin |
+| Slug collision | **PASS** second “Front Range HVAC” → `front-range-hvac-1` |
+
+Demo stays published at `/a/front-range-hvac` after smoke (re-published).

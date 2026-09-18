@@ -37,6 +37,9 @@ export default async function AdminPage() {
           <a href="/admin/screens" className="rounded-md bg-indigo-50 px-3 py-1.5 text-indigo-700 hover:bg-indigo-100">
             Screens
           </a>
+          <a href="/admin/profiles" className="rounded-md bg-indigo-50 px-3 py-1.5 text-indigo-700 hover:bg-indigo-100">
+            Profiles
+          </a>
         </div>
       </div>
 

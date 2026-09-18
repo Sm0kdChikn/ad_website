@@ -23,12 +23,20 @@ export default async function DashboardPage() {
           <h1 className="text-2xl font-bold text-slate-900">Your creatives</h1>
           <p className="text-sm text-slate-600">Upload, submit for review, and track status.</p>
         </div>
-        <Link
-          href="/creatives/new"
-          className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
-        >
-          Upload creative
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/profile"
+            className="rounded-md bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100"
+          >
+            Public profile
+          </Link>
+          <Link
+            href="/creatives/new"
+            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+          >
+            Upload creative
+          </Link>
+        </div>
       </div>
 
       {creatives.length === 0 ? (

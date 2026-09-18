@@ -1,6 +1,6 @@
 # AdNabbit Web MVP
 
-Advertiser signup/login, creative upload (image/video), submit for review, admin approve/reject, and **Ticket A — Host/screen inventory**.
+Advertiser signup/login, creative upload (image/video), submit for review, admin approve/reject, **Ticket A — Host/screen inventory**, and **Ticket B — Advertiser public profiles**.
 
 **Repo target:** https://github.com/Sm0kdChikn/ad_website
 
@@ -38,7 +38,13 @@ Open http://localhost:3000
 
 Change `ADMIN_EMAIL` / `ADMIN_PASSWORD` before seeding in non-dev environments.
 
-Seed also creates sample **hosts** and **screens** for Ticket A demos.
+Seed also creates sample **hosts** / **screens** (Ticket A) and a **published demo advertiser profile** at `/a/front-range-hvac` (Ticket B).
+
+### Default seed demo advertiser
+
+- Email: `demo.advertiser@adnabbit.com`
+- Password: `demo123!`
+- Public profile: http://localhost:3000/a/front-range-hvac
 
 ## Scripts
 
@@ -47,7 +53,7 @@ Seed also creates sample **hosts** and **screens** for Ticket A demos.
 | `npm run dev` | Next.js dev server |
 | `npm run db:migrate` | Prisma migrate (interactive) |
 | `npm run db:push` | Push schema without migration history |
-| `npm run db:seed` | Create/update ADMIN + sample hosts/screens |
+| `npm run db:seed` | Create/update ADMIN + sample hosts/screens + demo advertiser profile |
 | `npm run build` / `start` | Production build & serve |
 
 ## Creative statuses
@@ -93,6 +99,41 @@ Admin-only CRUD for venues (hosts) and screens.
 
 Non-admins receive `401`/`403` on APIs and are redirected away from admin pages.
 
+
+## Ticket B — Advertiser public profiles
+
+Shareable public pages at `/a/[slug]`. Advertisers edit their own profile; admins can unpublish.
+
+### Data model
+
+- **AdvertiserProfile** (1:1 with `User`): `slug` (unique, URL-safe), `displayName`, `pitch`, `website`, `contact` (phone or email), `logoStoredName` (upload) and/or `logoUrl` (external), `category`, `serviceAreaZips` (CSV/free-form), `published` (bool)
+- Slug is derived from business name with collision suffixes (`-1`, `-2`, …)
+
+### Advertiser UI / API
+
+| Path | Purpose |
+|------|---------|
+| `/profile` | Create/edit own profile + publish toggle |
+| GET/PUT | `/api/profile` (advertiser only; PUT accepts JSON or multipart for logo upload) |
+
+### Public
+
+| Path | Purpose |
+|------|---------|
+| `/a/[slug]` | Public profile — **published only**; unpublished → soft “not available” |
+
+### Admin
+
+| Path | Purpose |
+|------|---------|
+| `/admin/profiles` | List all profiles; **Unpublish** action |
+| GET | `/api/admin/profiles` |
+| POST | `/api/admin/profiles/[id]/unpublish` |
+
+### Demo
+
+After seed: log in as `demo.advertiser@adnabbit.com` / `demo123!` → Profile, or open `/a/front-range-hvac` anonymously.
+
 ## Uploads
 
 - Allowed: `image/jpeg`, `image/png`, `image/webp`, `video/mp4`, `video/webm`
@@ -108,7 +149,6 @@ Non-admins receive `401`/`403` on APIs and are redirected away from admin pages.
 
 ## Out of scope (later tickets)
 
-- Ticket B: public advertiser profiles
 - Ticket C: placement requests
 - Host self-serve portal, player, OptiSigns sync, scheduling, proof-of-play, marketplace, billing
 

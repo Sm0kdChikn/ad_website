@@ -21,6 +21,9 @@ export function Nav() {
                   <Link href="/dashboard" className="text-slate-700 hover:text-indigo-600">
                     Dashboard
                   </Link>
+                  <Link href="/profile" className="text-slate-700 hover:text-indigo-600">
+                    Profile
+                  </Link>
                   <Link href="/creatives/new" className="text-slate-700 hover:text-indigo-600">
                     Upload
                   </Link>
@@ -36,6 +39,9 @@ export function Nav() {
                   </Link>
                   <Link href="/admin/screens" className="text-slate-700 hover:text-indigo-600">
                     Screens
+                  </Link>
+                  <Link href="/admin/profiles" className="text-slate-700 hover:text-indigo-600">
+                    Profiles
                   </Link>
                 </>
               )}
