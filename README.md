@@ -2,7 +2,7 @@
 
 Advertiser signup/login, creative upload (image/video), submit for review, admin approve/reject, **Ticket A — Host/screen inventory**, and **Ticket B — Advertiser public profiles**, and **Ticket C — Placement requests**.
 
-**Repo target:** https://github.com/Sm0kdChikn/ad_website
+**Repo target:** https://github.com/Sm0kdChikn/adnabbit
 
 ## Stack
 
